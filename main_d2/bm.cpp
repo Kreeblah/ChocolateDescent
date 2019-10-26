@@ -48,12 +48,12 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 uint8_t Sounds[MAX_SOUNDS];
 uint8_t AltSounds[MAX_SOUNDS];
 
-#ifdef EDITOR
+//#ifdef EDITOR
 int Num_total_object_types;
 int8_t	ObjType[MAX_OBJTYPE];
 int8_t	ObjId[MAX_OBJTYPE];
 fix	ObjStrength[MAX_OBJTYPE];
-#endif
+//#endif
 
 //for each model, a model number for dying & dead variants, or -1 if none
 int Dying_modelnums[MAX_POLYGON_MODELS];

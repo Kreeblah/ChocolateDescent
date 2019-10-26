@@ -952,9 +952,9 @@ int piggy_init(void)
 	gr_printf(0x8000, grd_curcanv->cv_h - 20, "%s...", TXT_LOADING_DATA);
 	WIN(DDGRUNLOCK(dd_grd_curcanv));
 
-#ifdef EDITOR
+//#ifdef EDITOR
 	piggy_init_pigfile(DEFAULT_PIGFILE);
-#endif
+//#endif
 
 	ham_ok = read_hamfile();
 

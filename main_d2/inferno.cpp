@@ -1003,11 +1003,11 @@ Here:
 	}
 
 	mprintf((0, "\nDoing bm_init..."));
-#ifdef EDITOR
+//#ifdef EDITOR
 	bm_init_use_tbl();
-#else
-	bm_init();
-#endif
+//#else
+//	bm_init();
+//#endif
 
 #ifdef EDITOR
 	if (FindArg("-hoarddata") != 0) 

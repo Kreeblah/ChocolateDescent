@@ -13,22 +13,21 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 
 #include "settings.h"
 
-#ifdef EDITOR
-
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
 #include <string.h>
 #include <ctype.h>
+#include <algorithm>
 
-#include "pstypes.h"
+#include "misc/types.h"
 #include "inferno.h"
-#include "gr.h"
+#include "2d/gr.h"
 #include "bm.h"
 #include "gamepal.h"
-#include "mem.h"
-#include "mono.h"
-#include "error.h"
+#include "mem/mem.h"
+#include "platform/mono.h"
+#include "misc/error.h"
 #include "object.h"
 #include "vclip.h"
 #include "effects.h"
@@ -38,8 +37,8 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "game.h"
 #include "multi.h"
 
-#include "iff.h"
-#include "cfile.h"
+#include "iff/iff.h"
+#include "cfile/cfile.h"
 
 #include "hostage.h"
 #include "powerup.h"
@@ -54,10 +53,11 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include "endlevel.h"
 #include "cntrlcen.h"
 #include "compbit.h"
-#include "args.h"
+#include "misc/args.h"
 
-
+#ifdef EDITOR
 #include "editor\texpage.h"
+#endif
 
 #define BM_NONE			-1
 #define BM_COCKPIT		 0
@@ -99,7 +99,7 @@ static short 		sound_num;
 static short 		frames;
 static float 		time;
 static int			hit_sound = -1;
-static byte 		bm_flag = BM_NONE;
+static int8_t 		bm_flag = BM_NONE;
 static int 			abm_flag = 0;
 static int 			rod_flag = 0;
 static short		wall_open_sound, wall_close_sound,wall_explodes,wall_blastable, wall_hidden;
@@ -150,29 +150,29 @@ void remove_char( char * s, char c )
 }
 
 //---------------------------------------------------------------
-int compute_average_pixel(grs_bitmap *new)
+int compute_average_pixel(grs_bitmap * newbm)
 {
 	int	row, column, color;
 	char	*pptr;
 	int	total_red, total_green, total_blue;
 
-	pptr = (char *)new->bm_data;
+	pptr = (char *)newbm->bm_data;
 
 	total_red = 0;
 	total_green = 0;
 	total_blue = 0;
 
-	for (row=0; row<new->bm_h; row++)
-		for (column=0; column<new->bm_w; column++) {
+	for (row=0; row< newbm->bm_h; row++)
+		for (column=0; column< newbm->bm_w; column++) {
 			color = *pptr++;
 			total_red += gr_palette[color*3];
 			total_green += gr_palette[color*3+1];
 			total_blue += gr_palette[color*3+2];
 		}
 
-	total_red /= (new->bm_h * new->bm_w);
-	total_green /= (new->bm_h * new->bm_w);
-	total_blue /= (new->bm_h * new->bm_w);
+	total_red /= (newbm->bm_h * newbm->bm_w);
+	total_green /= (newbm->bm_h * newbm->bm_w);
+	total_blue /= (newbm->bm_h * newbm->bm_w);
 
 	return BM_XRGB(total_red/2, total_green/2, total_blue/2);
 }
@@ -184,8 +184,8 @@ int compute_average_pixel(grs_bitmap *new)
 bitmap_index bm_load_sub( char * filename )
 {
 	bitmap_index bitmap_num;
-	grs_bitmap * new;
-	ubyte newpal[256*3];
+	grs_bitmap * newbm;
+	uint8_t newpal[256*3];
 	int iff_error;		//reference parm to avoid warning message
 	char fname[20];
 
@@ -201,34 +201,36 @@ bitmap_index bm_load_sub( char * filename )
 	_splitpath(  filename, NULL, NULL, fname, NULL );
 
 	bitmap_num=piggy_find_bitmap( fname );
-	if (bitmap_num.index)	{
+	if (bitmap_num.index)	
+	{
 		//mprintf(( 0, "Found bitmap '%s' in pig!\n", fname ));
 		return bitmap_num;
 	}
    
-	MALLOC( new, grs_bitmap, 1 );
-	iff_error = iff_read_bitmap(filename,new,BM_LINEAR,newpal);
-	new->bm_handle=0;
-	if (iff_error != IFF_NO_ERROR)		{
+	MALLOC(newbm, grs_bitmap, 1 );
+	iff_error = iff_read_bitmap(filename, newbm,BM_LINEAR,newpal);
+	//newbm->bm_handle=0;
+	if (iff_error != IFF_NO_ERROR)		
+	{
 		mprintf((1, "File %s - IFF error: %s",filename,iff_errormsg(iff_error)));
 		Error("File <%s> - IFF error: %s, line %d",filename,iff_errormsg(iff_error),linenum);
 	}
 
 	if ( iff_has_transparency )
-		gr_remap_bitmap_good( new, newpal, iff_transparent_color, SuperX );
+		gr_remap_bitmap_good(newbm, newpal, iff_transparent_color, SuperX );
 	else
-		gr_remap_bitmap_good( new, newpal, -1, SuperX );
+		gr_remap_bitmap_good(newbm, newpal, -1, SuperX );
 
-	new->avg_color = compute_average_pixel(new);
+	newbm->avg_color = compute_average_pixel(newbm);
 
 	// -- mprintf((0, "N" ));
-	bitmap_num = piggy_register_bitmap( new, fname, 0 );
-	free( new );
+	bitmap_num = piggy_register_bitmap(newbm, fname, 0 );
+	free(newbm);
 	return bitmap_num;
 }
 
 extern grs_bitmap bogus_bitmap;
-extern ubyte bogus_bitmap_initialized;
+extern uint8_t bogus_bitmap_initialized;
 extern digi_sound bogus_sound;
 
 void ab_load( char * filename, bitmap_index bmp[], int *nframes )
@@ -237,7 +239,7 @@ void ab_load( char * filename, bitmap_index bmp[], int *nframes )
 	bitmap_index bi;
 	int i;
 	int iff_error;		//reference parm to avoid warning message
-	ubyte newpal[768];
+	uint8_t newpal[768];
 	char fname[20];
 	char tempname[20];
 
@@ -302,7 +304,7 @@ void ab_load( char * filename, bitmap_index bmp[], int *nframes )
 int ds_load( char * filename )	{
 	int i;
 	CFILE * cfp;
-	digi_sound new;
+	digi_sound newsnd;
 	char fname[20];
 	char rawname[100];
 
@@ -324,9 +326,9 @@ int ds_load( char * filename )	{
 	cfp = cfopen( rawname, "rb" );
 
 	if (cfp!=NULL) {
-		new.length	= cfilelength( cfp );
-		MALLOC( new.data, ubyte, new.length );
-		cfread( new.data, 1, new.length, cfp );
+		newsnd.length	= cfilelength( cfp );
+		MALLOC(newsnd.data, uint8_t, newsnd.length );
+		cfread(newsnd.data, 1, newsnd.length, cfp );
 		cfclose(cfp);
 		// -- mprintf( (0, "S" ));
 		// -- mprintf( (0, "<%s>", rawname ));
@@ -334,7 +336,7 @@ int ds_load( char * filename )	{
 		mprintf( (1, "Warning: Couldn't find '%s'\n", filename ));
 		return 255;
 	}
-	i = piggy_register_sound( &new, fname, 0 );
+	i = piggy_register_sound( &newsnd, fname, 0 );
 	return i;
 }
 
@@ -356,7 +358,7 @@ int get_int()
 	return atoi( xarg );
 }
 
-// rotates a byte left one bit, preserving the bit falling off the right
+// rotates a int8_t left one bit, preserving the bit falling off the right
 //void
 //rotate_left(char *c)
 //{
@@ -395,6 +397,10 @@ int get_texture(char *name)
 #define LINEBUF_SIZE 600
 
 #define DEFAULT_PIG_PALETTE	"groupa.256"
+
+void bm_read_alias();
+void bm_read_marker();
+void clear_to_end_of_line(void);
 
 //-----------------------------------------------------------------
 // Initializes all bitmaps from BITMAPS.TBL file.
@@ -709,7 +715,7 @@ void verify_textures()
 
 }
 
-bm_read_alias()
+void bm_read_alias()
 {
 	char *t;
 
@@ -725,7 +731,7 @@ bm_read_alias()
 //--unused-- {
 //--unused-- 	FILE * fp;
 //--unused-- 	int i,j,k;
-//--unused-- 	ubyte * p;
+//--unused-- 	uint8_t * p;
 //--unused-- 	fp = fopen( "XPARENT.LST", "wt" );
 //--unused-- 	for (i=0; i<Num_tmaps; i++ )	{
 //--unused-- 		k = 0; 
@@ -748,7 +754,7 @@ void bm_close()
  	}
 }
 
-void set_lighting_flag(byte *bp)
+void set_lighting_flag(int8_t *bp)
 {
 	if (vlighting < 0)
 		*bp |= BM_FLAG_NO_LIGHTING;
@@ -839,7 +845,9 @@ void bm_read_eclip()
 		set_lighting_flag( &GameBitmaps[bm[clip_count].index].bm_flags);
 		Effects[clip_num].vc.frames[clip_count] = bm[clip_count];
 
-		if (!obj_eclip && !crit_flag) {
+		if (!obj_eclip && !crit_flag) 
+		{
+			//fprintf(stderr, "changing wall texture for eclip %d is %d\n", clip_num, texture_count);
 			Effects[clip_num].changing_wall_texture = texture_count;
 			Assert(tmap_count < MAX_TEXTURES);
   			TmapList[tmap_count++] = texture_count;
@@ -1072,7 +1080,7 @@ void get4fix(fix *fixp)
 }
 
 // ------------------------------------------------------------------------------
-void get4byte(byte *bytep)
+void get4byte(int8_t *bytep)
 {
 	char	*curtext;
 	int	i;
@@ -1254,7 +1262,7 @@ void bm_read_robot()
 	int			attack_sound = ROBOT_ATTACK_SOUND_DEFAULT;
 	int			claw_sound = ROBOT_CLAW_SOUND_DEFAULT;
 	int			taunt_sound = ROBOT_SEE_SOUND_DEFAULT;
-	ubyte flags=0;
+	uint8_t flags=0;
 
 	Assert(N_robot_types < MAX_ROBOT_TYPES);
 
@@ -1405,7 +1413,7 @@ void bm_read_robot()
 
 	for (i=0;i<n_models;i++) {
 		int n_textures;
-		int model_num,last_model_num;
+		int model_num, last_model_num = 0;
 
 		n_textures = first_bitmap_num[i+1] - first_bitmap_num[i];
 
@@ -1463,7 +1471,7 @@ void bm_read_robot()
 	Robot_info[N_robot_types].claw_sound = claw_sound;
 	Robot_info[N_robot_types].taunt_sound = taunt_sound;
 	Robot_info[N_robot_types].behavior = behavior;		//	Default behavior for this robot, if coming out of matcen.
-	Robot_info[N_robot_types].aim = min(f2i(aim*255), 255);		//	how well this robot type can aim.  255=perfect
+	Robot_info[N_robot_types].aim = std::min((int)f2i(aim*255), 255);		//	how well this robot type can aim.  255=perfect
 
 	if (contains_type)
 		Robot_info[N_robot_types].contains_type = OBJ_ROBOT;
@@ -1775,11 +1783,13 @@ void bm_read_player_ship()
 	if (First_multi_bitmap_num==-1)
 		first_bitmap_num[n_models] = N_ObjBitmapPtrs;
 
+#ifdef NETWORK
 	Assert(last_multi_bitmap_num-First_multi_bitmap_num == (MAX_NUM_NET_PLAYERS-1)*2);
+#endif
 
 	for (i=0;i<n_models;i++) {
 		int n_textures;
-		int model_num,last_model_num;
+		int model_num,last_model_num = 0; //[ISB] init
 
 		n_textures = first_bitmap_num[i+1] - first_bitmap_num[i];
 
@@ -2125,7 +2135,7 @@ void bm_read_weapon(int unused_flag)
 
 	for (i=0;i<n_models;i++) {
 		int n_textures;
-		int model_num,last_model_num;
+		int model_num,last_model_num = 0; //init
 
 		n_textures = first_bitmap_num[i+1] - first_bitmap_num[i];
 
@@ -2273,6 +2283,8 @@ void bm_read_hostage()
 #define N_D2_OBJBITMAPPTRS		502
 #define N_D2_WEAPON_TYPES		62
 
+void bm_write_extra_robots();
+
 void bm_write_all(FILE *fp)
 {
 	int i,t;
@@ -2291,8 +2303,8 @@ fprintf(tfile,"NumTextures = %d, Textures array = %d, TmapInfo array = %d\n",Num
 
 	t = MAX_SOUNDS;
 	fwrite( &t, sizeof(int), 1, fp );
-	fwrite( Sounds, sizeof(ubyte), t, fp );
-	fwrite( AltSounds, sizeof(ubyte), t, fp );
+	fwrite( Sounds, sizeof(uint8_t), t, fp );
+	fwrite( AltSounds, sizeof(uint8_t), t, fp );
 
 fprintf(tfile,"Num Sounds = %d, Sounds array = %d, AltSounds array = %d\n",t,t,t);
 
@@ -2342,7 +2354,7 @@ fprintf(tfile,"N_polygon_models = %d, Polygon_models array = %d\n",t,sizeof(poly
 
 	for (i=0; i<t; i++ )	{
 		g3_uninit_polygon_model(Polygon_models[i].model_data);	//get RGB colors
-		fwrite( Polygon_models[i].model_data, sizeof(ubyte), Polygon_models[i].model_data_size, fp );
+		fwrite( Polygon_models[i].model_data, sizeof(uint8_t), Polygon_models[i].model_data_size, fp );
 fprintf(tfile,"  Model %d, data size = %d\n",i,Polygon_models[i].model_data_size); s+=Polygon_models[i].model_data_size;
 		g3_init_polygon_model(Polygon_models[i].model_data);	//map colors again
 	}
@@ -2363,9 +2375,9 @@ fprintf(tfile,"Num gauge bitmaps = %d, Gauges array = %d, Gauges_hires array = %
 	t = MAX_OBJ_BITMAPS;
 	fwrite( &t, sizeof(int), 1, fp );
 	fwrite( ObjBitmaps, sizeof(bitmap_index), t, fp );
-	fwrite( ObjBitmapPtrs, sizeof(ushort), t, fp );
+	fwrite( ObjBitmapPtrs, sizeof(uint16_t), t, fp );
 
-fprintf(tfile,"Num obj bitmaps = %d, ObjBitmaps array = %d, ObjBitmapPtrs array = %d\n",t,sizeof(bitmap_index)*t,sizeof(ushort)*t);
+fprintf(tfile,"Num obj bitmaps = %d, ObjBitmaps array = %d, ObjBitmapPtrs array = %d\n",t,sizeof(bitmap_index)*t,sizeof(uint16_t)*t);
 
 	fwrite( &only_player_ship, sizeof(player_ship), 1, fp );
 
@@ -2377,8 +2389,8 @@ fprintf(tfile,"player_ship size = %d\n",sizeof(player_ship));
 fprintf(tfile,"Num_cockpits = %d, cockpit_bitmaps array = %d\n",Num_cockpits,sizeof(bitmap_index)*Num_cockpits);
 
 //@@	fwrite( &Num_total_object_types, sizeof(int), 1, fp );
-//@@	fwrite( ObjType, sizeof(byte), Num_total_object_types, fp );
-//@@	fwrite( ObjId, sizeof(byte), Num_total_object_types, fp );
+//@@	fwrite( ObjType, sizeof(int8_t), Num_total_object_types, fp );
+//@@	fwrite( ObjId, sizeof(int8_t), Num_total_object_types, fp );
 //@@	fwrite( ObjStrength, sizeof(fix), Num_total_object_types, fp );
 
 fprintf(tfile,"Num_total_object_types = %d, ObjType array = %d, ObjId array = %d, ObjStrength array = %d\n",Num_total_object_types,Num_total_object_types,Num_total_object_types,sizeof(fix)*Num_total_object_types);
@@ -2406,7 +2418,7 @@ fclose(tfile);
 	bm_write_extra_robots();
 }
 
-bm_write_extra_robots()
+void bm_write_extra_robots()
 {
 	FILE *fp;
 	int t,i;
@@ -2439,7 +2451,7 @@ bm_write_extra_robots()
 
 	for (i=N_D2_POLYGON_MODELS; i<N_polygon_models; i++ )	{
 		g3_uninit_polygon_model(Polygon_models[i].model_data);	//get RGB colors
-		fwrite( Polygon_models[i].model_data, sizeof(ubyte), Polygon_models[i].model_data_size, fp );
+		fwrite( Polygon_models[i].model_data, sizeof(uint8_t), Polygon_models[i].model_data_size, fp );
 		g3_init_polygon_model(Polygon_models[i].model_data);	//map colors again
 	}
 
@@ -2452,11 +2464,9 @@ bm_write_extra_robots()
 
 	t = N_ObjBitmapPtrs - N_D2_OBJBITMAPPTRS;
 	fwrite( &t, sizeof(int), 1, fp );
-	fwrite( &ObjBitmapPtrs[N_D2_OBJBITMAPPTRS], sizeof(ushort), t, fp );
+	fwrite( &ObjBitmapPtrs[N_D2_OBJBITMAPPTRS], sizeof(uint16_t), t, fp );
 
-	fwrite( ObjBitmapPtrs, sizeof(ushort), t, fp );
+	fwrite( ObjBitmapPtrs, sizeof(uint16_t), t, fp );
 
 	fclose(fp);
 }
-
-#endif
