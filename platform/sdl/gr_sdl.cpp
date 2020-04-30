@@ -13,12 +13,12 @@ Instead, it is released under the terms of the MIT License.
 
 #ifdef USE_SDL
 
-#include "sdl.h"
-#include "sdl_video.h"
-#include "sdl_surface.h"
-#include "sdl_pixels.h"
-#include "sdl_mouse.h"
-#include "sdl_render.h"
+#include "SDL.h"
+#include "SDL_video.h"
+#include "SDL_surface.h"
+#include "SDL_pixels.h"
+#include "SDL_mouse.h"
+#include "SDL_render.h"
 
 #include "2d/gr.h"
 #include "2d/i_gr.h"
@@ -28,6 +28,7 @@ Instead, it is released under the terms of the MIT License.
 #include "platform/joy.h"
 #include "platform/mouse.h"
 #include "platform/key.h"
+#include "platform/timer.h"
 
 #define FITMODE_BEST 1
 #define FITMODE_FILTERED 2
@@ -44,6 +45,8 @@ int BestFit = 0;
 int Fullscreen = 0;
 
 SDL_Rect screenRectangle;
+
+uint32_t localPal[256];
 
 int I_Init()
 {
@@ -248,6 +251,16 @@ int I_SetMode(int mode)
 	return 0;
 }
 
+void I_ScaleMouseToWindow(int* x, int* y)
+{
+	//printf("in: (%d, %d) ", *x, *y);
+	*x = (*x * screenRectangle.w / WindowWidth);
+	*y = (*y * screenRectangle.h / WindowHeight);
+	if (*x < 0) *x = 0; if (*x >= screenRectangle.w) *x = screenRectangle.w - 1;
+	if (*y < 0) *y = 0; if (*y >= screenRectangle.h) *y = screenRectangle.h - 1;
+	//printf("out: (%d, %d)\n", *x, *y);
+}
+
 void I_DoEvents()
 {
 	SDL_Event ev;
@@ -274,6 +287,8 @@ void I_DoEvents()
 		case SDL_KEYUP:
 			I_KeyHandler(ev.key.keysym.scancode, ev.key.state);
 			break;
+			//[ISB] kill this. Descent's joystick code expects buttons to report that they're constantly being held down, and these button events only fire when the state changes
+/*
 		case SDL_CONTROLLERAXISMOTION:
 		case SDL_CONTROLLERBUTTONDOWN:
 		case SDL_CONTROLLERBUTTONUP:
@@ -282,11 +297,14 @@ void I_DoEvents()
 		case SDL_JOYAXISMOTION:
 		case SDL_JOYBUTTONDOWN:
 		case SDL_JOYBUTTONUP:
+		case SDL_JOYHATMOTION:
 			I_JoystickHandler();
-			break;
+			break;*/
 		}
 	}
 
+	I_JoystickHandler();
+	I_ControllerHandler();
 }
 
 void I_SetRelative(int state)
@@ -318,6 +336,7 @@ void I_WritePalette(int start, int end, uint8_t* data)
 		colors[i].r = (Uint8)(data[i * 3 + 0] * 255 / 63);
 		colors[i].g = (Uint8)(data[i * 3 + 1] * 255 / 63);
 		colors[i].b = (Uint8)(data[i * 3 + 2] * 255 / 63);
+		localPal[start+i] = 255 | (colors[i].r << 24) | (colors[i].g << 16) | (colors[i].b << 8);
 	}
 	SDL_SetPaletteColors(pal, &colors[0], start, end-start+1);
 }
@@ -349,7 +368,9 @@ void I_ReadPalette(uint8_t* dest)
 void I_WaitVBL()
 {
 	//Now what is a VBL, anyways?
-	SDL_Delay(1000 / 70);
+	//SDL_Delay(1000 / 70);
+	I_MarkEnd(US_70FPS);
+	I_MarkStart();
 }
 
 void I_DrawCurrentCanvas(int sync)
@@ -362,61 +383,31 @@ void I_DrawCurrentCanvas(int sync)
 
 	if (!gameSurface) return;
 
-	unsigned char* pixels = (unsigned char*)gameSurface->pixels;
-
-	SDL_LockSurface(gameSurface);
-	//Ah, lots of operations in a vital part of the code. lovely.
-	if (BestFit == FITMODE_FILTERED && grd_curscreen->sc_h <= 400)
-	{
-		int pitch = grd_curscreen->sc_w * 2;
-		int offset = 0;
-		int srcoffset = 0;
-		int x, y;
-		for (y = 0; y < grd_curscreen->sc_h; y++)
-		{
-			for (x = 0; x < grd_curscreen->sc_w; x++)
-			{
-				pixels[offset] = screenBuffer->cv_bitmap.bm_data[srcoffset];
-				pixels[offset+1] = screenBuffer->cv_bitmap.bm_data[srcoffset];
-				pixels[offset + pitch] = screenBuffer->cv_bitmap.bm_data[srcoffset];
-				pixels[offset + pitch + 1] = screenBuffer->cv_bitmap.bm_data[srcoffset];
-				offset += 2;
-				srcoffset++;
-			}
-			offset += pitch;
-		}
-	}
-	else
-		memcpy(pixels,  screenBuffer->cv_bitmap.bm_data, screenBuffer->cv_bitmap.bm_w * screenBuffer->cv_bitmap.bm_h); //[ISB] alternate attempt at this nonsense
-	SDL_UnlockSurface(gameSurface);
-
 	src.x = src.y = 0;
 	//src.w = grd_curscreen->sc_w; src.h = grd_curscreen->sc_h;
 	src.w = gameSurface->w; src.h = gameSurface->h;
 
 	dest.x = dest.y = 0; //dest.w = WindowWidth-1; dest.h = WindowHeight-1;
 
-	//draw to window
-	if (SDL_BlitSurface(gameSurface, &src, hackSurface, &dest))
-	{
-		Warning("Cannot blit subscreen: %s\n", SDL_GetError());
-	}
-
-	//I hate this
-	unsigned char* texPixels;
+	uint32_t* texPixels;
 	int pitch;
 	SDL_LockTexture(gameTexture, NULL, (void**)&texPixels, &pitch);
-	SDL_LockSurface(hackSurface);
-	pixels = (unsigned char*)hackSurface->pixels;
-	//for (int i = 0; i < screenBuffer->cv_bitmap.bm_h; i++)
-	for (int i = 0; i < hackSurface->h; i++)
+	uint8_t *pixels = screenBuffer->cv_bitmap.bm_data;
+	int iterations = screenBuffer->cv_bitmap.bm_h * screenBuffer->cv_bitmap.bm_w;
+	for (int i = 0; i < iterations; i+=8)
 	{
-		memcpy(texPixels, pixels, hackSurface->w * 4);
-		texPixels += pitch;
-		pixels += hackSurface->w * 4;
+		texPixels[i] = localPal[pixels[i]];
+		texPixels[i + 1] = localPal[pixels[i + 1]];
+		texPixels[i + 2] = localPal[pixels[i + 2]];
+		texPixels[i + 3] = localPal[pixels[i + 3]];
+		texPixels[i + 4] = localPal[pixels[i + 4]];
+		texPixels[i + 5] = localPal[pixels[i + 5]];
+		texPixels[i + 6] = localPal[pixels[i + 6]];
+		texPixels[i + 7] = localPal[pixels[i + 7]];
+		//texPixels++;
+		//pixels++;
 	}
 	SDL_UnlockTexture(gameTexture);
-	SDL_UnlockSurface(hackSurface);
 
 	SDL_RenderClear(renderer);
 	SDL_RenderCopy(renderer, gameTexture, &src, &screenRectangle);

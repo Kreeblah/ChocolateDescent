@@ -18,9 +18,7 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string.h>	//	for memset()
 #include <algorithm>
 
-#ifdef MACINTOSH
-#include <Memory.h>
-#endif
+#include "misc/rand.h"
 
 #include "inferno.h"
 #include "game.h"
@@ -107,7 +105,7 @@ int get_num_faces(side *sidep)
 			Error("Illegal type = %i\n", sidep->type);
 			break;
 	}
-
+	return 0; //shut up warning
 }
 
 // Fill in array with four absolute point numbers for a given side
@@ -748,23 +746,22 @@ int trace_segs(vms_vector *p0,int oldsegnum, int trace_segs_iterations)
 
 	Assert((oldsegnum <= Highest_segment_index) && (oldsegnum >= 0));
 
-
-#if defined(MACINTOSH)
-	if (StackSpace() < 1024) {
-#elif defined(WINDOWS)
-	/*if (stackavail() < 10240)*/ {
-#else
 	/*if (stackavail() < 1024)*/ 
 	if (trace_segs_iterations > 1024)
 	{		//if no debugging, we'll get past assert
-#endif
-		#ifndef NDEBUG
+#ifndef NDEBUG
 		if (!Doing_lighting_hack_flag)
 			Int3();	// Please get Matt, or if you cannot, then type 
 						// "?p0->xyz,segnum" at the DBG prompt, write down
 						// the values (a 3-element vector and a segment number), 
 						// and make a copy of the mine you are playing.
-		#endif
+		else
+#endif
+			//[ISB] this function is really bad. really really bad. agonizingly bad.
+			//This doesn't even begin to replicate it vanilla like, but I'd rather do this than rely on stupid shit
+			//like stack availability. It would make more sense to do an exhaustive test if this fails but that's not what vanilla does.
+			//or maybe they could have just used a saner search algorithm...
+			fprintf(stderr, "trace_segs: iteration limit hit\n");
 
 		return oldsegnum;				//just say we're in this segment and be done with it
 	}
@@ -802,9 +799,7 @@ int trace_segs(vms_vector *p0,int oldsegnum, int trace_segs_iterations)
 
 				side_dists[biggest_side] = 0;
 
-				trace_segs_iterations++;
-				check = trace_segs(p0,seg->children[biggest_side], trace_segs_iterations);	//trace into adjacent segment
-				trace_segs_iterations--;
+				check = trace_segs(p0,seg->children[biggest_side], trace_segs_iterations+1);	//trace into adjacent segment
 
 				if (check != -1)		//we've found a segment
 					return check;	
@@ -1873,9 +1868,9 @@ void pick_random_point_in_seg(vms_vector *new_pos, int segnum)
 	vms_vector	vec2;
 
 	compute_segment_center(new_pos, &Segments[segnum]);
-	vnum = (rand() * MAX_VERTICES_PER_SEGMENT) >> 15;
+	vnum = (P_Rand() * MAX_VERTICES_PER_SEGMENT) >> 15;
 	vm_vec_sub(&vec2, &Vertices[Segments[segnum].verts[vnum]], new_pos);
-	vm_vec_scale(&vec2, rand());			//	rand() always in 0..1/2
+	vm_vec_scale(&vec2, P_Rand());			//	P_Rand() always in 0..1/2
 	vm_vec_add2(new_pos, &vec2);
 }
 

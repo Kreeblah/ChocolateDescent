@@ -20,7 +20,8 @@ COPYRIGHT 1993-1999 PARALLAX SOFTWARE CORPORATION.  ALL RIGHTS RESERVED.
 #include <string.h>
 #include <ctype.h>
 #include <stdarg.h>
-#include <io.h>
+
+#include "platform/posixstub.h"
 
 #include "misc/error.h"
 #include "misc/types.h"
@@ -292,7 +293,7 @@ void scores_maybe_add_player(int abort_flag)
 	scores_view(position);
 }
 
-void scores_rprintf(int x, int y, char* format, ...)
+void scores_rprintf(int x, int y, const char* format, ...)
 {
 	va_list args;
 	char buffer[128];
