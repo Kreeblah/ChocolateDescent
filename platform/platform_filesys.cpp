@@ -4,13 +4,16 @@ and is not under the terms of the Parallax Software Source license.
 Instead, it is released under the terms of the MIT License.
 */
 
-#include "platform_filesys.h"
+#include "platform/platform_filesys.h"
+#include "platform/posixstub.h"
 #include "misc/error.h"
 
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 #include <sys/stat.h>
+
+#define CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE 6856701
 
 static char local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE] = {0};
 
@@ -391,7 +394,6 @@ void validate_required_files()
 	{
 		memset(missing_file_string, 0, 65536);
 		snprintf(missing_file_string, 65536, "You are missing the following required files:\n%s\nPlease place the missing files at the following locations:\n%s", missing_file_list, missing_file_location_list);
-		printf("missing_file_string: %s\n", missing_file_string);
 		Error(missing_file_string);
 	}
 }
@@ -538,4 +540,130 @@ void get_temp_file_full_path(char* filename_full_path, const char* filename)
 
 	snprintf(filename_full_path, CHOCOLATE_MAX_FILE_PATH_SIZE, ".%c%s", PLATFORM_PATH_SEPARATOR, filename);
 	return;
+}
+
+int fix_broken_descent_15_hogfile()
+{
+	FILE *in_fp, *out_fp, *temp_fp;
+	size_t read_write_result;
+	uint8_t output_buffer[CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE];
+	char hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	char hogfile_backup_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE]
+	char temp_file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	const uint8_t chunk_1[0x02] = {static_cast<uint8_t>('\xac'), '\x03'};
+	const uint8_t chunk_2[0x21] = {'\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x30', '\x37'};
+	const uint8_t chunk_3[0x0137] = {'\x38', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x72', '\x69', '\x63', '\x6b', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x72', '\x69', '\x63', '\x6b', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x30', '\x39', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x30', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x31', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x69', '\x6e', '\x74', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x69', '\x6e', '\x74', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x32', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x33', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x69', '\x6e', '\x74', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x69', '\x6e', '\x74', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x34', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x69', '\x6e', '\x74', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x69', '\x6e', '\x74', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x35', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x36', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31'};
+	const uint8_t chunk_4[0xae] = {'\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x38', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x69', '\x6e', '\x74', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x69', '\x6e', '\x74', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x31', '\x39', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x32', '\x30', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x32', '\x31', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x69', '\x6e', '\x74', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x69', '\x6e', '\x74', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x32', '\x32', '\x2e', '\x68', '\x6d', '\x70', '\x09', '\x68', '\x61', '\x6d', '\x6d', '\x65', '\x6c', '\x6f', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x68', '\x61', '\x6d'};
+
+	get_full_file_path(hogfile_full_path, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
+	get_full_file_path(hogfile_backup_full_path, "descent.hog.bak", CHOCOLATE_SYSTEM_FILE_DIR);
+
+	in_fp = fopen(hogfile_full_path, "rb");
+	if (in_fp == NULL)
+	{
+		printf("Unable to read %s for patching\n", hogfile_full_path);
+		return 0;
+	}
+
+	read_write_result = fread(output_buffer, 1, 0x0f5e5a, in_fp);
+
+	if (read_write_result != 0x0f5e5a)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	memcpy(&output_buffer[0x0f5e5a], chunk_1, 0x02);
+
+	if (fseek(in_fp, 2, SEEK_CUR) != 0)
+	{
+		printf("Error seeking in %s\n", hogfile_full_path);
+		return 0;
+	}
+
+	read_write_result = fread(&output_buffer[0x0f5e5c], 1, 0x016b, in_fp);
+
+	if (read_write_result != 0x016b)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	memcpy(&output_buffer[0x0f5fc7], chunk_2, 0x21);
+
+	read_write_result = fread(&output_buffer[0x0f5fe8], 1, 0x20, in_fp);
+
+	if (read_write_result != 0x20)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	memcpy(&output_buffer[0x0f6008],chunk_3, 0x0137);
+
+	read_write_result = fread(&output_buffer[0x0f613f], 1, 0x12, in_fp);
+
+	if (read_write_result != 0x12)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	memcpy(&output_buffer[0x0f6151], chunk_4, 0xae);
+
+	read_write_result = fread(&output_buffer[0x0f61ff], 1, 0x593dfe, in_fp);
+
+	if (read_write_result != 0x593dfe)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	fclose(in_fp);
+
+	get_temp_file_full_path(temp_file_full_path, "descent.hog");
+
+	_unlink(temp_file_full_path);
+
+	out_fp = fopen(temp_file_full_path, "wb");
+	if (out_fp == NULL)
+	{
+		printf("Unable to open temp file for writing at %s\n", temp_file_full_path);
+		return 0;
+	}
+
+	read_write_result = fwrite(output_buffer, 1, CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE, out_fp);
+
+	if (read_write_result != CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE)
+	{
+		printf("Didn't write expected amount of data to temp file at %s\n", temp_file_full_path);
+		fclose(out_fp);
+		return 0;
+	}
+
+	fclose(out_fp);
+
+	if (rename(hogfile_full_path, hogfile_backup_full_path) != 0)
+	{
+		printf("Unable to back up existing file from %s to %s\n", hogfile_full_path, hogfile_backup_full_path);
+		return 0;
+	}
+
+	if (rename(temp_file_full_path, hogfile_full_path) != 0)
+	{
+		printf("Unable to write patched file to %s", hogfile_full_path);
+		if(rename(hogfile_backup_full_path, hogfile_full_path) != 0)
+		{
+			printf("Unable to restore backup file from %s to %s\nPlease rename the file manually.", hogfile_backup_full_path, hogfile_full_path);
+		}
+
+		return 0;
+	}
+
+	return 1;
 }
