@@ -548,7 +548,7 @@ int fix_broken_descent_15_hogfile()
 	size_t read_write_result;
 	uint8_t output_buffer[CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE];
 	char hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
-	char hogfile_backup_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE]
+	char hogfile_backup_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char temp_file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	const uint8_t chunk_1[0x02] = {static_cast<uint8_t>('\xac'), '\x03'};
 	const uint8_t chunk_2[0x21] = {'\x2e', '\x68', '\x6d', '\x70', '\x09', '\x6d', '\x65', '\x6c', '\x6f', '\x64', '\x69', '\x63', '\x2e', '\x62', '\x6e', '\x6b', '\x09', '\x64', '\x72', '\x75', '\x6d', '\x2e', '\x62', '\x6e', '\x6b', '\x0d', '\x0a', '\x67', '\x61', '\x6d', '\x65', '\x30', '\x37'};
@@ -626,6 +626,87 @@ int fix_broken_descent_15_hogfile()
 		fclose(in_fp);
 		return 0;
 	}
+
+	fclose(in_fp);
+
+	get_temp_file_full_path(temp_file_full_path, "descent.hog");
+
+	_unlink(temp_file_full_path);
+
+	out_fp = fopen(temp_file_full_path, "wb");
+	if (out_fp == NULL)
+	{
+		printf("Unable to open temp file for writing at %s\n", temp_file_full_path);
+		return 0;
+	}
+
+	read_write_result = fwrite(output_buffer, 1, CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE, out_fp);
+
+	if (read_write_result != CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE)
+	{
+		printf("Didn't write expected amount of data to temp file at %s\n", temp_file_full_path);
+		fclose(out_fp);
+		return 0;
+	}
+
+	fclose(out_fp);
+
+	// TODO: Validate SHA1 checksum to verify that the file written to the temp
+	//       location has a sum of 4d6fb40e943f92574aba2c9fc1574330de89905b
+
+	if (rename(hogfile_full_path, hogfile_backup_full_path) != 0)
+	{
+		printf("Unable to back up existing file from %s to %s\n", hogfile_full_path, hogfile_backup_full_path);
+		return 0;
+	}
+
+	if (rename(temp_file_full_path, hogfile_full_path) != 0)
+	{
+		printf("Unable to write patched file to %s", hogfile_full_path);
+		if(rename(hogfile_backup_full_path, hogfile_full_path) != 0)
+		{
+			printf("Unable to restore backup file from %s to %s\nPlease rename the file manually.", hogfile_backup_full_path, hogfile_full_path);
+		}
+
+		return 0;
+	}
+
+	return 1;
+}
+
+int patch_descent_1_14_to_15()
+{
+	FILE *in_fp, *out_fp, *temp_fp;
+	size_t read_write_result;
+	uint8_t output_buffer[CHOCOLATE_DESCENT_HOG_FIXED_HOG_SIZE];
+	char hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	char hogfile_backup_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	char temp_file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
+	const uint8_t chunk_1[0x02] = {'\x16'};
+
+	get_full_file_path(hogfile_full_path, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
+	get_full_file_path(hogfile_backup_full_path, "descent.hog.bak", CHOCOLATE_SYSTEM_FILE_DIR);
+
+	// TODO: Validate SHA1 checksum to verify that the file to modify currently
+	//       has a sum of c4a003c11a62db61465abe0e20065f5cf97697c4
+
+	in_fp = fopen(hogfile_full_path, "rb");
+	if (in_fp == NULL)
+	{
+		printf("Unable to read %s for patching\n", hogfile_full_path);
+		return 0;
+	}
+
+	read_write_result = fread(output_buffer, 1, 0x689ffd, in_fp);
+
+	if (read_write_result != 0x689ffd)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	output_buffer[0x0f] = chunk_1[0x01];
 
 	fclose(in_fp);
 
