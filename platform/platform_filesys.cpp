@@ -558,6 +558,9 @@ int fix_broken_descent_15_hogfile()
 	get_full_file_path(hogfile_full_path, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
 	get_full_file_path(hogfile_backup_full_path, "descent.hog.bak", CHOCOLATE_SYSTEM_FILE_DIR);
 
+	// TODO: Validate SHA1 checksum to verify that the file to modify currently
+	//       has a sum of 19659f7dc0a464b2778d1274cd136a7a4f02c0ca
+
 	in_fp = fopen(hogfile_full_path, "rb");
 	if (in_fp == NULL)
 	{
@@ -647,6 +650,9 @@ int fix_broken_descent_15_hogfile()
 	}
 
 	fclose(out_fp);
+
+	// TODO: Validate SHA1 checksum to verify that the file written to the temp
+	//       location has a sum of 4d6fb40e943f92574aba2c9fc1574330de89905b
 
 	if (rename(hogfile_full_path, hogfile_backup_full_path) != 0)
 	{
