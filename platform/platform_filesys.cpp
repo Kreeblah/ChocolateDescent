@@ -18,7 +18,6 @@ Instead, it is released under the terms of the MIT License.
 #define CHOCOLATE_DESCENT_2_HOG_12_HOG_SIZE 7595079
 
 extern int sha1digest(uint8_t *digest, char *hexdigest, const uint8_t *data, size_t databytes);
-extern void generatehex (char *hexdigest, uint8_t *digest);
 static char local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE] = {0};
 
 int fix_broken_descent_1_15_patch();
@@ -729,7 +728,8 @@ int patch_descent_1_14_to_15()
 {
 	FILE *in_fp, *out_fp, *temp_fp;
 	size_t read_write_result;
-	uint8_t output_buffer[CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE];
+	uint8_t digest[20], output_buffer[CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE];
+	char hexdigest[41];
 	char hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char hogfile_backup_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char temp_file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -738,8 +738,42 @@ int patch_descent_1_14_to_15()
 	get_full_file_path(hogfile_full_path, "descent.hog", CHOCOLATE_SYSTEM_FILE_DIR);
 	get_full_file_path(hogfile_backup_full_path, "descent.hog.bak", CHOCOLATE_SYSTEM_FILE_DIR);
 
+	printf("Attempting to patch %s to 1.5\n", hogfile_full_path);
+
 	// TODO: Validate SHA1 checksum to verify that the file to modify currently
 	//       has a sum of c4a003c11a62db61465abe0e20065f5cf97697c4
+
+	in_fp = fopen(hogfile_full_path, "rb");
+	if (in_fp == NULL)
+	{
+		printf("Unable to read %s for patching\n", hogfile_full_path);
+		return 0;
+	}
+
+	read_write_result = fread(output_buffer, 1, CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE, in_fp);
+
+	if (read_write_result != CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	fclose(in_fp);
+
+	if (sha1digest(digest, hexdigest, output_buffer, CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE))
+	{
+		printf("Unable to calculate SHA1 digest for %s\n", hogfile_full_path);
+		return 0;
+	}
+
+	if (strncmp(hexdigest, "c4a003c11a62db61465abe0e20065f5cf97697c4", 40) != 0)
+	{
+		printf("Invalid digest for %s: %s\n", hogfile_full_path, hexdigest);
+		return 0;
+	}
+
+	memset(output_buffer, 0, CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE);
 
 	in_fp = fopen(hogfile_full_path, "rb");
 	if (in_fp == NULL)
@@ -760,6 +794,18 @@ int patch_descent_1_14_to_15()
 	output_buffer[0x0f] = chunk_1;
 
 	fclose(in_fp);
+
+	if (sha1digest(digest, hexdigest, output_buffer, CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE))
+	{
+		printf("Unable to calculate SHA1 sum for patched copy of %s\n", hogfile_full_path);
+		return 0;
+	}
+
+	if (strncmp(hexdigest, "4d6fb40e943f92574aba2c9fc1574330de89905b", 40) != 0)
+	{
+		printf("Invalid digest for patched copy of %s: %s\n", hogfile_full_path, hexdigest);
+		return 0;
+	}
 
 	get_temp_file_full_path(temp_file_full_path, "descent.hog");
 
@@ -783,9 +829,6 @@ int patch_descent_1_14_to_15()
 
 	fclose(out_fp);
 
-	// TODO: Validate SHA1 checksum to verify that the file written to the temp
-	//       location has a sum of 4d6fb40e943f92574aba2c9fc1574330de89905b
-
 	if (rename(hogfile_full_path, hogfile_backup_full_path) != 0)
 	{
 		printf("Unable to back up existing file from %s to %s\n", hogfile_full_path, hogfile_backup_full_path);
@@ -802,6 +845,8 @@ int patch_descent_1_14_to_15()
 
 		return 0;
 	}
+
+	printf("Successfully patched %s to 1.5\n", hogfile_full_path);
 
 	return 1;
 }
