@@ -13,18 +13,79 @@ Instead, it is released under the terms of the MIT License.
 #include <string.h>
 #include <sys/stat.h>
 
-#define CHOCOLATE_DESCENT_HOG_15_BROKEN_HOG_SIZE 6856183
+// Sizes of supported files for which that's relevant
 #define CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE 6856701
+
+// Sizes of files which can be patched to supported files
+#define CHOCOLATE_DESCENT_HOG_14_HOG_SIZE 6856701
+#define CHOCOLATE_DESCENT_HOG_15_BROKEN_HOG_SIZE 6856183
+#define CHOCOLATE_DESCENT_2_HOG_11_HOG_SIZE 7595079
 #define CHOCOLATE_DESCENT_2_HOG_12_HOG_SIZE 7595079
+
+// Hashes of supported files
+#define CHOCOLATE_DESCENT_HOG_15_FIXED_SHA1 "4d6fb40e943f92574aba2c9fc1574330de89905b"
+#define CHOCOLATE_DESCENT_PIG_15_SHA1 "53f6453d5a836cf660c6dcca0f636d46a28ee20c"
+#define CHOCOLATE_ALIEN1_PIG_12_SHA1 "80e040199b347f8f17f31afb32d551113cf40956"
+#define CHOCOLATE_ALIEN2_PIG_12_SHA1 "2bbb8d941f8b06b56d5ddc7f723a206907a95548"
+#define CHOCOLATE_D2_2PLYR_HOG_12_SHA1 "15767e36f12ed8667249e19e948686c13dd5d90b"
+#define CHOCOLATE_D2_2PLYR_MN2_12_SHA1 "db13b038e5b3b8ccbc6f2418bbe49dc0bac87235"
+#define CHOCOLATE_D2CHAOS_HOG_12_SHA1 "156f66ae7ae48fff582116bdf0e91e0f3386b3af"
+#define CHOCOLATE_D2CHAOS_MN2_12_SHA1 "bf266256dc726852bad4896861a1dfad4022f8b1"
+#define CHOCOLATE_D2X_HOG_12_SHA1 "c6ad7c7f5b052b1be346edebdcd1673d5797755b"
+#define CHOCOLATE_D2X_MN2_12_SHA1 "4951910d16e1765c647acfafb077c0d8063e4473"
+#define CHOCOLATE_D2X_H_MVL_12_SHA1 "e04995cd04bd75024156b094968f84ab8dc23c7a"
+#define CHOCOLATE_D2X_L_MVL_12_SHA1 "2d391af492f86f285ad0126a7acb4501921e5545"
+#define CHOCOLATE_DESCENT2_HAM_12_SHA1 "9f621706cbd601bd6938a44f5fb7e5cc55d4b61f"
+#define CHOCOLATE_DESCENT2_HOG_12_SHA1 "8e73beb4b64a7222fa2b5214282d5e671b313992"
+#define CHOCOLATE_DESCENT2_S11_12_SHA1 "72372b2fc9f88553fae6e26aba34a7c433322051"
+#define CHOCOLATE_DESCENT2_S22_12_SHA1 "f67d22b5aa2e06b286719e063b4e054169a765b1"
+#define CHOCOLATE_FIRE_PIG_12_SHA1 "6365ed9256411e883189e7c2149671f9de24526b"
+#define CHOCOLATE_GROUPA_PIG_12_SHA1 "fc3dd5059ff445986d05c143c54284bd7ec2ee68"
+#define CHOCOLATE_HOARD_HAM_12_SHA1 "9c68072b154d7e135bd8beb0a544cd4da4cde603"
+#define CHOCOLATE_ICE_PIG_12_SHA1 "f3df0545359e9f2a7f58a4dd07615bd87cce10bf"
+#define CHOCOLATE_INTRO_H_MVL_12_SHA1 "9614aac967aa9f2efe10af553e506e27bb91e5ba"
+#define CHOCOLATE_INTRO_L_MVL_12_SHA1 "fe8f973ec54ae527c8dd205dc4e0027fbe4a87df"
+#define CHOCOLATE_OTHER_H_MVL_12_SHA1 "e8f1a2d643feb2731fc05974ab202c4cd3aea0fd"
+#define CHOCOLATE_OTHER_L_MVL_12_SHA1 "234c5b7810b5a8a820baa755dc634f993c6a7af9"
+#define CHOCOLATE_PANIC_HOG_12_SHA1 "90bbf31be2e4f220a4ac623c48b48a10eb89e448"
+#define CHOCOLATE_PANIC_MN2_12_SHA1 "830ab8aed668b3485e17c08afa24fc55dd7cc56c"
+#define CHOCOLATE_ROBOTS_H_MVL_12_SHA1 "c130ecda730b5ce111947308a33b7911759fb3a5"
+#define CHOCOLATE_ROBOTS_L_MVL_12_SHA1 "42be364b135bb2c3497ca39839533bde49c08644"
+#define CHOCOLATE_WATER_PIG_12_SHA1 "1874f70353680a803811a5ff2cce949e3f5d5076"
+
+// Hashes of files which can be patched to supported files
+#define CHOCOLATE_DESCENT_HOG_14_SHA1 "c4a003c11a62db61465abe0e20065f5cf97697c4"
+#define CHOCOLATE_DESCENT_HOG_15_BROKEN_SHA1 "19659f7dc0a464b2778d1274cd136a7a4f02c0ca"
+#define CHOCOLATE_DESCENT2_HOG_11_SHA1 "7a17a70ad6a99bb78fb2383a9eca40d06e3e9b45"
+
+// Hashes of unsupported files
+#define CHOCOLATE_DESCENT_HOG_10_SHA1 "d00b712206e84f6cbd874e271aa4d7ee7c2750e2"
+#define CHOCOLATE_DESCENT_PIG_10_SHA1 "24d24e69f15d054774f40d0882c0d4a439fea26c"
+#define CHOCOLATE_DESCENT_HOG_MACPLAY_SHA1 "c276203ebcca1939b8172246fbf5cd75fcbc14d3"
+#define CHOCOLATE_DESCENT_PIG_MACPLAY_SHA1 "eb483fcad4905a7dfb0fd26477bd7215452c9890"
+#define CHOCOLATE_D2_2PLYR_MN2_MACPLAY_12_SHA1 "72d53b6830657e6bbbbae2e510cab327673efd2f"
+#define CHOCOLATE_D2CHAOS_MN2_MACPLAY_12_SHA1 "395074cf458b8fce9941168910f10e5cfee3c9b8"
+#define CHOCOLATE_DESCENT2_HAM_10_SHA1 "0ff00307a3a319a7b876625b6270d84c95b32148"
+#define CHOCOLATE_DESCENT2_HOG_10_SHA1 "4e818336d48c44e02899ec536a601b3fc6903c9a"
+#define CHOCOLATE_ALIEN1_PIG_MACPLAY_12_SHA1 "bf0c852c836f89d5c3cc8c0508346c3ea07d35b1"
+#define CHOCOLATE_ALIEN2_PIG_MACPLAY_12_SHA1 "51acda0ff9449304c9381352ed0f4ed8a3d4849a"
+#define CHOCOLATE_DESCENT2_HOG_MACPLAY_12_SHA1 "3aa96efd12578740381f0398ed1d964b1d607400"
+#define CHOCOLATE_FIRE_PIG_MACPLAY_12_SHA1 "75546a51e5f889047fc6909ffe7c8d20ca20db44"
+#define CHOCOLATE_GROUPA_PIG_MACPLAY_12_SHA1 "5a2d7e67587af79311ad3fbef4d47a15e01980d6"
+#define CHOCOLATE_ICE_PIG_MACPLAY_12_SHA1 "911e31273b15ff93589b7da0c32e51d1d7130654"
+#define CHOCOLATE_INTRO_MVL_MACPLAY_12_SHA1 "8dc96ab3daaaf40aeb5971dafc6c63b60e198e32"
+#define CHOCOLATE_OTHER_MVL_MACPLAY_12_SHA1 "d000f21afb3a89af8b35bc7747956237c26140fa"
+#define CHOCOLATE_ROBOTS_MVL_MACPLAY_12_SHA1 "8e4daa890fb92d1b695a13064748eef87e50a16b"
+#define CHOCOLATE_WATER_PIG_MACPLAY_12_SHA1 "294322fd1c56244e8eba0950aff74014f6c55f7f"
 
 extern int sha1digest(uint8_t *digest, char *hexdigest, const uint8_t *data, size_t databytes);
 static char local_file_path_prefix[CHOCOLATE_MAX_FILE_PATH_SIZE] = {0};
 
+void get_missing_file_locations(char* missing_file_string, const char* missing_file_list);
+
 int fix_broken_descent_1_15_patch();
 int patch_descent_1_14_to_15();
 int patch_descent_2_11_to_12();
-
-void get_missing_file_locations(char* missing_file_string, const char* missing_file_list);
 
 // This is not completely ready for primetime
 // for Windows.  Drive letters aren't really
@@ -592,7 +653,7 @@ int fix_broken_descent_1_15_patch()
 		return 0;
 	}
 
-	if (strncmp(hexdigest, "19659f7dc0a464b2778d1274cd136a7a4f02c0ca", 40) != 0)
+	if (strncmp(hexdigest, CHOCOLATE_DESCENT_HOG_15_BROKEN_SHA1, 40) != 0)
 	{
 		printf("Invalid digest for %s: %s\n", hogfile_full_path, hexdigest);
 		return 0;
@@ -674,7 +735,7 @@ int fix_broken_descent_1_15_patch()
 		return 0;
 	}
 
-	if (strncmp(hexdigest, "4d6fb40e943f92574aba2c9fc1574330de89905b", 40) != 0)
+	if (strncmp(hexdigest, CHOCOLATE_DESCENT_HOG_15_FIXED_SHA1, 40) != 0)
 	{
 		printf("Invalid digest for patched copy of %s: %s\n", hogfile_full_path, hexdigest);
 		return 0;
@@ -719,7 +780,7 @@ int fix_broken_descent_1_15_patch()
 		return 0;
 	}
 
-	printf("Successuflly patched %s to a fixed version of 1.5\n", hogfile_full_path);
+	printf("Successuflly patched %s to a fixed version of 1.5\nYour original descent.hog file can be found at %s\n", hogfile_full_path, hogfile_backup_full_path);
 
 	return 1;
 }
@@ -740,9 +801,6 @@ int patch_descent_1_14_to_15()
 
 	printf("Attempting to patch %s to 1.5\n", hogfile_full_path);
 
-	// TODO: Validate SHA1 checksum to verify that the file to modify currently
-	//       has a sum of c4a003c11a62db61465abe0e20065f5cf97697c4
-
 	in_fp = fopen(hogfile_full_path, "rb");
 	if (in_fp == NULL)
 	{
@@ -750,9 +808,9 @@ int patch_descent_1_14_to_15()
 		return 0;
 	}
 
-	read_write_result = fread(output_buffer, 1, CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE, in_fp);
+	read_write_result = fread(output_buffer, 1, CHOCOLATE_DESCENT_HOG_14_HOG_SIZE, in_fp);
 
-	if (read_write_result != CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE)
+	if (read_write_result != CHOCOLATE_DESCENT_HOG_14_HOG_SIZE)
 	{
 		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
 		fclose(in_fp);
@@ -761,13 +819,13 @@ int patch_descent_1_14_to_15()
 
 	fclose(in_fp);
 
-	if (sha1digest(digest, hexdigest, output_buffer, CHOCOLATE_DESCENT_HOG_15_FIXED_HOG_SIZE))
+	if (sha1digest(digest, hexdigest, output_buffer, CHOCOLATE_DESCENT_HOG_14_HOG_SIZE))
 	{
 		printf("Unable to calculate SHA1 digest for %s\n", hogfile_full_path);
 		return 0;
 	}
 
-	if (strncmp(hexdigest, "c4a003c11a62db61465abe0e20065f5cf97697c4", 40) != 0)
+	if (strncmp(hexdigest, CHOCOLATE_DESCENT_HOG_14_SHA1, 40) != 0)
 	{
 		printf("Invalid digest for %s: %s\n", hogfile_full_path, hexdigest);
 		return 0;
@@ -801,7 +859,7 @@ int patch_descent_1_14_to_15()
 		return 0;
 	}
 
-	if (strncmp(hexdigest, "4d6fb40e943f92574aba2c9fc1574330de89905b", 40) != 0)
+	if (strncmp(hexdigest, CHOCOLATE_DESCENT_HOG_15_FIXED_SHA1, 40) != 0)
 	{
 		printf("Invalid digest for patched copy of %s: %s\n", hogfile_full_path, hexdigest);
 		return 0;
@@ -846,7 +904,7 @@ int patch_descent_1_14_to_15()
 		return 0;
 	}
 
-	printf("Successfully patched %s to 1.5\n", hogfile_full_path);
+	printf("Successfully patched %s to 1.5\nYour original descent.hog file can be found at %s\n", hogfile_full_path, hogfile_backup_full_path);
 
 	return 1;
 }
@@ -855,7 +913,8 @@ int patch_descent_2_11_to_12()
 {
 	FILE *in_fp, *out_fp, *temp_fp;
 	size_t read_write_result;
-	uint8_t output_buffer[CHOCOLATE_DESCENT_2_HOG_12_HOG_SIZE];
+	uint8_t digest[20], output_buffer[CHOCOLATE_DESCENT_2_HOG_12_HOG_SIZE];
+	char hexdigest[41];
 	char hogfile_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char hogfile_backup_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
 	char temp_file_full_path[CHOCOLATE_MAX_FILE_PATH_SIZE];
@@ -865,8 +924,37 @@ int patch_descent_2_11_to_12()
 	get_full_file_path(hogfile_full_path, "descent2.hog", CHOCOLATE_SYSTEM_FILE_DIR);
 	get_full_file_path(hogfile_backup_full_path, "descent2.hog.bak", CHOCOLATE_SYSTEM_FILE_DIR);
 
-	// TODO: Validate SHA1 checksum to verify that the file to modify currently
-	//       has a sum of 7a17a70ad6a99bb78fb2383a9eca40d06e3e9b45
+	in_fp = fopen(hogfile_full_path, "rb");
+	if (in_fp == NULL)
+	{
+		printf("Unable to read %s for patching\n", hogfile_full_path);
+		return 0;
+	}
+
+	read_write_result = fread(output_buffer, 1, CHOCOLATE_DESCENT_2_HOG_11_HOG_SIZE, in_fp);
+
+	if (read_write_result != CHOCOLATE_DESCENT_2_HOG_11_HOG_SIZE)
+	{
+		printf("Didn't read expected amount of data from %s\n", hogfile_full_path);
+		fclose(in_fp);
+		return 0;
+	}
+
+	fclose(in_fp);
+
+	if (sha1digest(digest, hexdigest, output_buffer, CHOCOLATE_DESCENT_2_HOG_11_HOG_SIZE))
+	{
+		printf("Unable to calculate SHA1 digest for %s\n", hogfile_full_path);
+		return 0;
+	}
+
+	if (strncmp(hexdigest, CHOCOLATE_DESCENT2_HOG_11_SHA1, 40) != 0)
+	{
+		printf("Invalid digest for %s: %s\n", hogfile_full_path, hexdigest);
+		return 0;
+	}
+
+	memset(output_buffer, 0, CHOCOLATE_DESCENT_2_HOG_12_HOG_SIZE);
 
 	in_fp = fopen(hogfile_full_path, "rb");
 	if (in_fp == NULL)
@@ -899,6 +987,18 @@ int patch_descent_2_11_to_12()
 
 	fclose(in_fp);
 
+	if (sha1digest(digest, hexdigest, output_buffer, CHOCOLATE_DESCENT_2_HOG_12_HOG_SIZE))
+	{
+		printf("Unable to calculate SHA1 sum for patched copy of %s\n", hogfile_full_path);
+		return 0;
+	}
+
+	if (strncmp(hexdigest, CHOCOLATE_DESCENT2_HOG_12_SHA1, 40) != 0)
+	{
+		printf("Invalid digest for patched copy of %s: %s\n", hogfile_full_path, hexdigest);
+		return 0;
+	}
+
 	get_temp_file_full_path(temp_file_full_path, "descent2.hog");
 
 	_unlink(temp_file_full_path);
@@ -920,9 +1020,6 @@ int patch_descent_2_11_to_12()
 	}
 
 	fclose(out_fp);
-
-	// TODO: Validate SHA1 checksum to verify that the file written to the temp
-	//       location has a sum of 8e73beb4b64a7222fa2b5214282d5e671b313992
 
 	if (rename(hogfile_full_path, hogfile_backup_full_path) != 0)
 	{
